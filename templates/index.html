@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>Phân tích Khuôn mặt & Đặt lịch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .step {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .step h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .camera-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .video-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        #video, #capturedImage {
+            width: 320px;
+            height: 240px;
+            object-fit: cover;
+        }
+
+        .canvas-container {
+            margin: 20px 0;
+        }
+
+        #canvas {
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .gender-selection {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .gender-option {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .gender-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .analysis-result {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .face-shape-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .face-shape-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .hairstyles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .hairstyle-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .hairstyle-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .hairstyle-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .hairstyle-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .hairstyle-description {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .booking-form {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .gender-selection {
+                flex-direction: column;
+            }
+            
+            .hairstyles-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            #video, #capturedImage {
+                width: 280px;
+                height: 210px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Hair Style AI</h1>
+            <p>Phân tích khuôn mặt thông minh và gợi ý kiểu tóc phù hợp</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Bước 1: Chụp ảnh -->
+            <div class="step" id="step1">
+                <h2>📸 Bước 1: Chụp ảnh khuôn mặt</h2>
+                <div class="camera-section">
+                    <div class="video-container">
+                        <video id="video" autoplay playsinline></video>
+                        <img id="capturedImage" class="hidden" alt="Ảnh đã chụp">
+                    </div>
+                    
+                    <div>
+                        <button id="startCamera" class="btn">📷 Bật Camera</button>
+                        <button id="captureBtn" class="btn" disabled>📸 Chụp ảnh</button>
+                        <button id="retakeBtn" class="btn hidden">🔄 Chụp lại</button>
+                    </div>
+                    
+                    <div class="canvas-container">
+                        <canvas id="canvas" class="hidden"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bước 2: Chọn giới tính -->
+            <div class="step" id="step2">
+                <h2>👤 Bước 2: Chọn giới tính</h2>
+                <div class="gender-selection">
+                    <div class="gender-option" data-gender="male">
+                        <h3>👨 Nam</h3>
+                        <p>Kiểu tóc dành cho nam giới</p>
+                    </div>
+                    <div class="gender-option" data-gender="female">
+                        <h3>👩 Nữ</h3>
+                        <p>Kiểu tóc dành cho nữ giới</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bước 3: Phân tích -->
+            <div class="step" id="step3">
+                <h2>🔍 Bước 3: Phân tích khuôn mặt</h2>
+                <div class="text-center">
+                    <button id="analyzeBtn" class="btn" disabled>🧠 Phân tích khuôn mặt</button>
+                </div>
+                
+                <div id="loadingAnalysis" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Đang phân tích khuôn mặt của bạn...</p>
+                </div>
+
+                <div id="analysisResult" class="analysis-result hidden">
+                    <div class="face-shape-display">
+                        <h3>Khuôn mặt của bạn:</h3>
+                        <div id="faceShapeBadge" class="face-shape-badge"></div>
+                    </div>
+                    
+                    <div id="visualizationContainer" class="text-center">
+                        <h4>Hình ảnh phân tích:</h4>
+                        <img id="visualizationImage" style="max-width: 100%; border-radius: 10px;" alt="Kết quả phân tích">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bước 4: Chọn kiểu tóc -->
+            <div class="step" id="step4">
+                <h2>💇 Bước 4: Chọn kiểu tóc phù hợp</h2>
+                <div id="hairstylesContainer" class="hairstyles-grid"></div>
+            </div>
+
+            <!-- Bước 5: Đặt lịch -->
+            <div class="step" id="step5">
+                <h2>📅 Bước 5: Đặt lịch cắt tóc</h2>
+                <div class="booking-form">
+                    <form id="bookingForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="customerName">Họ và tên *</label>
+                                <input type="text" id="customerName" name="customerName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Số điện thoại *</label>
+                                <input type="tel" id="phone" name="phone" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="appointmentDate">Ngày hẹn *</label>
+                                <input type="date" id="appointmentDate" name="appointmentDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="appointmentTime">Giờ hẹn *</label>
+                                <select id="appointmentTime" name="appointmentTime" required>
+                                    <option value="">Chọn giờ</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="stylist">Thợ cắt tóc</label>
+                            <select id="stylist" name="stylist">
+                                <option value="Bất kỳ">Bất kỳ thợ nào có thể</option>
+                                <option value="Anh Minh">Anh Minh - Chuyên gia</option>
+                                <option value="Chị Lan">Chị Lan - Senior</option>
+                                <option value="Anh Tuấn">Anh Tuấn - Tạo mẫu</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">Ghi chú thêm</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Yêu cầu đặc biệt hoặc ghi chú..."></textarea>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn" style="font-size: 18px; padding: 15px 40px;">
+                                📅 Đặt lịch ngay
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Thông báo -->
+            <div id="successMessage" class="success-message hidden"></div>
+            <div id="errorMessage" class="error-message hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // Biến toàn cục
+        let stream = null;
+        let capturedImageData = null;
+        let selectedGender = null;
+        let analysisResult = null;
+        let selectedHairstyle = null;
+
+        // Khởi tạo ứng dụng
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            setupEventListeners();
+            setMinDate();
+        }
+
+        function setupEventListeners() {
+            // Camera controls
+            document.getElementById('startCamera').addEventListener('click', startCamera);
+            document.getElementById('captureBtn').addEventListener('click', captureImage);
+            document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
+            
+            // Gender selection
+            document.querySelectorAll('.gender-option').forEach(option => {
+                option.addEventListener('click', selectGender);
+            });
+            
+            // Analysis
+            document.getElementById('analyzeBtn').addEventListener('click', analyzeImage);
+            
+            // Booking form
+            document.getElementById('bookingForm').addEventListener('submit', submitBooking);
+        }
+
+        function setMinDate() {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const minDate = tomorrow.toISOString().split('T')[0];
+            document.getElementById('appointmentDate').setAttribute('min', minDate);
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    } 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                document.getElementById('startCamera').disabled = true;
+                document.getElementById('captureBtn').disabled = false;
+                
+                showSuccess('Camera đã được kích hoạt!');
+            } catch (error) {
+                console.error('Lỗi khi truy cập camera:', error);
+                showError('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.');
+            }
+        }
+
+        function captureImage() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            ctx.drawImage(video, 0, 0);
+            
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            const capturedImage = document.getElementById('capturedImage');
+            capturedImage.src = capturedImageData;
+            capturedImage.classList.remove('hidden');
+            
+            video.classList.add('hidden');
+            canvas.classList.remove('hidden');
+            
+            document.getElementById('captureBtn').classList.add('hidden');
+            document.getElementById('retakeBtn').classList.remove('hidden');
+            
+            // Stop camera stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            showSuccess('Ảnh đã được chụp thành công!');
+        }
+
+        function retakePhoto() {
+            const video = document.getElementById('video');
+            const capturedImage = document.getElementById('capturedImage');
+            const canvas = document.getElementById('canvas');
+            
+            video.classList.remove('hidden');
+            capturedImage.classList.add('hidden');
+            canvas.classList.add('hidden');
+            
+            document.getElementById('captureBtn').classList.remove('hidden');
+            document.getElementById('retakeBtn').classList.add('hidden');
+            
+            capturedImageData = null;
+            
+            // Restart camera
+            startCamera();
+        }
+
+        function selectGender(event) {
+            document.querySelectorAll('.gender-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            event.currentTarget.classList.add('selected');
+            selectedGender = event.currentTarget.dataset.gender;
+            
+            updateAnalyzeButton();
+            showSuccess(`Đã chọn giới tính: ${selectedGender === 'male' ? 'Nam' : 'Nữ'}`);
+        }
+
+        function updateAnalyzeButton() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = !(capturedImageData && selectedGender);
+        }
+
+        async function analyzeImage() {
+            if (!capturedImageData || !selectedGender) {
+                showError('Vui lòng chụp ảnh và chọn giới tính trước khi phân tích');
+                return;
+            }
+
+            const loadingDiv = document.getElementById('loadingAnalysis');
+            const resultDiv = document.getElementById('analysisResult');
+            
+            loadingDiv.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+
+            // Giả lập API call - thay thế bằng API thật
+            try {
+                const mockAnalysis = await simulateAnalysis();
+                
+                analysisResult = mockAnalysis;
+                
+                // Hiển thị kết quả
+                document.getElementById('faceShapeBadge').textContent = 
+                    getFaceShapeVietnamese(mockAnalysis.face_shape);
+                
+                // Hiển thị hình ảnh phân tích (mock)
+                document.getElementById('visualizationImage').src = capturedImageData;
+                
+                loadingDiv.classList.add('hidden');
+                resultDiv.classList.remove('hidden');
+                
+                // Load hairstyles
+                loadHairstyles(mockAnalysis.face_shape, selectedGender);
+                
+                showSuccess('Phân tích khuôn mặt hoàn tất!');
+                
+            } catch (error) {
+                loadingDiv.classList.add('hidden');
+                showError('Lỗi khi phân tích khuôn mặt: ' + error.message);
+            }
+        }
+
+        // Giả lập phân tích - thay thế bằng API thật
+        function simulateAnalysis() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const faceShapes = ['oval', 'round', 'square', 'heart', 'oblong', 'diamond'];
+                    const randomShape = faceShapes[Math.floor(Math.random() * faceShapes.length)];
+                    
+                    resolve({
+                        face_shape: randomShape,
+                        confidence: Math.random() * 0.3 + 0.7 // 70-100%
+                    });
+                }, 2000);
+            });
+        }
+
+        function getFaceShapeVietnamese(shape) {
+            const translations = {
+                'oval': 'Oval (Trứng)',
+                'round': 'Tròn',
+                'square': 'Vuông',
+                'heart': 'Tim',
+                'oblong': 'Dài',
+                'diamond': 'Kim cương'
+            };
+            return translations[shape] || shape;
+        }
+
+        function loadHairstyles(faceShape, gender) {
+            // Dữ liệu mẫu cho các kiểu tóc - thay thế bằng API thật
+            const hairstyleData = {
+                'oval': {
+                    'male': [
+                        { name: 'Undercut', description: 'Tóc ngắn hai bên, dài phía trên đỉnh đầu' },
+                        { name: 'Quiff', description: 'Tóc dựng đứng ở phía trước và mềm mại phía sau' },
+                        { name: 'Pompadour', description: 'Tóc dài phía trước, vuốt ngược và tạo độ phồng' }
+                    ],
+                    'female': [
+                        { name: 'Long Layers', description: 'Tóc dài, có nhiều tầng để tạo độ phồng' },
+                        { name: 'Bob', description: 'Tóc ngang vai, cắt bằng hoặc có độ nghiêng nhẹ' },
+                        { name: 'Pixie Cut', description: 'Tóc ngắn, phá cách với độ dài khác nhau' }
+                    ]
+                },
+                'round': {
+                    'male': [
+                        { name: 'Pompadour', description: 'Tóc dài phía trước, vuốt ngược tạo độ cao' },
+                        { name: 'Side Part', description: 'Tóc rẽ ngôi, gọn hai bên và có độ dài vừa phải' },
+                        { name: 'Faux Hawk', description: 'Tóc ngắn hai bên, dài giữa tạo đường thẳng' }
+                    ],
+                    'female': [
+                        { name: 'Long Layers with Side Bangs', description: 'Tóc dài, có tầng và mái xéo' },
+                        { name: 'A-line Bob', description: 'Tóc bob với độ dài tăng dần từ sau ra trước' },
+                        { name: 'Long Pixie', description: 'Tóc pixie dài hơn với độ phồng ở đỉnh đầu' }
+                    ]
+                }
+                // Thêm các dạng khuôn mặt khác...
+            };
+
+            const hairstyles = hairstyleData[faceShape]?.[gender] || hairstyleData['oval'][gender];
+            const container = document.getElementById('hairstylesContainer');
+            
+            container.innerHTML = '';
+            
+            hairstyles.forEach((hairstyle, index) => {
+                const card = document.createElement('div');
+                card.className = 'hairstyle-card';
+                card.dataset.hairstyle = JSON.stringify(hairstyle);
+                
+                card.innerHTML = `
+                    <div class="hairstyle-name">${hairstyle.name}</div>
+                    <div class="hairstyle-description">${hairstyle.description}</div>
+                `;
+                
+                card.addEventListener('click', selectHairstyle);
+                container.appendChild(card);
+            });
+        }
+
+        function selectHairstyle(event) {
+            document.querySelectorAll('.hairstyle-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            event.currentTarget.classList.add('selected');
+            selectedHairstyle = JSON.parse(event.currentTarget.dataset.hairstyle);
+            
+            showSuccess(`Đã chọn kiểu tóc: ${selectedHairstyle.name}`);
+        }
+
+        async function submitBooking(event) {
+            event.preventDefault();
+            
+            if (!selectedHairstyle) {
+                showError('Vui lòng chọn kiểu tóc trước khi đặt lịch');
+                return;
+            }
+
+            const formData = new FormData(event.target);
+            const bookingData = {
+                customer_name: formData.get('customerName'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                appointment_date: formData.get('appointmentDate'),
+                appointment_time: formData.get('appointmentTime'),
+                selected_hairstyle: selectedHairstyle,
+                stylist: formData.get('stylist'),
+                notes: formData.get('notes'),
+                face_shape: analysisResult?.face_shape,
+                gender: selectedGender
+            };
+
+            try {
+                // Giả lập API call - thay thế bằng API thật
+                const result = await simulateBooking(bookingData);
+                
+                showSuccess(`
+                    <h3>🎉 Đặt lịch thành công!</h3>
+                    <p><strong>Mã đặt lịch:</strong> ${result.booking_id}</p>
+                    <p><strong>Ngày giờ:</strong> ${bookingData.appointment_date} lúc ${bookingData.appointment_time}</p>
+                    <p><strong>Kiểu tóc:</strong> ${selectedHairstyle.name}</p>
+                    <p><strong>Thợ cắt:</strong> ${bookingData.stylist}</p>
+                    <p>Chúng tôi sẽ liên hệ với bạn để xác nhận lịch hẹn.</p>
+                `);
+                
+                // Reset form
+                event.target.reset();
+                
+            } catch (error) {
+                showError('Lỗi khi đặt lịch: ' + error.message);
+            }
+        }
+
+        // Giả lập đặt lịch - thay thế bằng API thật
+        function simulateBooking(bookingData) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const bookingId = 'BK' + Date.now();
+                    resolve({
+                        booking_id: bookingId,
+                        status: 'confirmed',
+                        ...bookingData
+                    });
+                }, 1000);
+            });
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.innerHTML = message;
+            successDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Cập nhật nút phân tích khi có thay đổi
+        setInterval(() => {
+            updateAnalyzeButton();
+        }, 1000);
+    </script>
+</body>
